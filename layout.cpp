@@ -40,7 +40,7 @@ bool Layout::AddObstacle(Point & p1, Point & p2){
 bool Layout::GenerateNet(const std::pair<size_t, size_t> & wl_range, size_t wl_upper_bound, float momentum, int pin_num, unsigned seed, int repeat){
    assert(pin_num >= 2);
    srand(seed);
-   std::set<Point>beg_candidates;
+   std::vector<Point>beg_candidates;
    //std::mt19937 gen(seed);
    for(int i = 0; i < repeat; ++i){
       int beg_idx = randInt(0, length - 1);
@@ -50,7 +50,7 @@ bool Layout::GenerateNet(const std::pair<size_t, size_t> & wl_range, size_t wl_u
             int x = idx / (height * layers);
             int y = (idx % (height * layers)) / layers;
             int z = idx % layers;  
-            beg_candidates.insert(Point(x, y, z));
+            beg_candidates.push_back(Point(x, y, z));
             break;
          }
       }
@@ -91,7 +91,7 @@ bool Layout::GenerateNet(const std::pair<size_t, size_t> & wl_range, size_t wl_u
             int y = total_path[idx].y;
             int z = total_path[idx].z;
             if(GetGrid(x, y, z) == 1){//wire grid at the bottom layer
-               beg_candidates.insert(Point(x, y, z));
+               beg_candidates.push_back(Point(x, y, z));
                break;
             }
          }

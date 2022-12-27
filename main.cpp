@@ -30,15 +30,18 @@ int main(){
             counter++;
         }
     }
-    L.GenerateNet({5, 10}, 60, 0.75, 5, 17);
-    L.SaveResult("test_0.txt");
+    //L.GenerateNet({5, 10}, 60, 1.0, 5, 17);
+    //L.SaveResult("test_0.txt");
     
     //std::cout << "         " << std::endl;
-    if(L.GenerateNet({10, 25}, 60, 0.9, 5, 88)){
-        std::cout << "success" << std::endl;
-    }else{
-        std::cout << "fail" << std::endl;
+    for(int i = 0; i < 20; ++i){
+        if(L.GenerateNet({10, 25}, 60, 1.0, 5, i)){
+            std::cout << "Create net " << i << " success" << std::endl;
+        }else{
+            std::cout << "Create net " << i << " fail" << std::endl;
+        }
     }
+    
     
     L.SaveResult("test.txt");
     
