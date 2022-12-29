@@ -57,7 +57,7 @@ public:
    bool AddObstacle(Point & p1, Point & p2);
    bool GenerateNet(const Net_config & config);
    bool SearchEngine(Net *net, const Point & beg, size_t wl_lower_bound, size_t wl_upper_bound, float momentum, std::vector<Point> & total_path);
-   void Path2Wire(Net * n, std::vector<Point> & total_path);
+   void Path2Wire(Net * n);
    void SaveResult(const std::string & filename);
    void CheckLegal();
    //std::vector<Point> pins;
@@ -74,6 +74,8 @@ private:
    const int layout_idx;
    std::mt19937 r_gen;
    int * grids; //-1: obstacle, 0: empty, 1: net 2: pin
+   std::vector<std::vector<bool>> h_edges;
+   std::vector<std::vector<bool>> v_edges;
    bool * visited;
 };
 

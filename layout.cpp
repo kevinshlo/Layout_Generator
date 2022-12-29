@@ -1,7 +1,16 @@
 #include "layout.h"
 
 Layout::Layout(int _width, int _height, int _layers, int idx) : width(_width), height(_height), layers(_layers), length(_width * _height * _layers), layout_idx(idx), r_gen(idx){
+   assert(layers == 2);
    grids = new int[length]();
+   h_edges.resize(width);
+   for(std::vector<bool> & h_e : h_edges){
+      h_e.resize(height - 1, false);
+   }
+   v_edges.resize(height);
+   for(std::vector<bool> & v_e : v_edges){
+      v_e.resize(width - 1, false);
+   }
    visited = new bool[length]();
 }
 
@@ -42,9 +51,14 @@ void Layout::Initialize(const std::vector<int> & obs_num, const std::vector<std:
    }
 
    for(const std::pair<int, Net_config> & net_config : net_configs){
+      int counter = 0;
       for(int i = 0; i < net_config.first; ++i){
-         GenerateNet(net_config.second);
+         if(GenerateNet(net_config.second)){
+            counter++;
+         }
+         //GenerateNet(net_config.second);
       }
+      std::cout << "Created " << net_config.second.pin_num << " pins net: " << counter << std::endl;
    }
 }
 
@@ -145,7 +159,8 @@ bool Layout::GenerateNet(const Net_config & config){
    }
    M_Assert((int)net->pins.size() == config.pin_num, "pin number error");
    nets.push_back(net);
-   Path2Wire(net, total_path);
+   Path2Wire(net);
+   //Path2Wire(net, total_path);
    return true;
 }
 
@@ -184,10 +199,14 @@ bool Layout::SearchEngine(Net *net, const Point & beg, size_t wl_lower_bound, si
             total_path.push_back(path.front());
             for(size_t i = 1; i < path.size(); ++i){
                Point & p_in_path = path[i];
-               if(p_in_path.x == path[i-1].x && p_in_path.y == path[i-1].y){
+               M_Assert((p_in_path - path[i-1]).manh()==1, "path error");
+               if(p_in_path.x != path[i-1].x){//h_wire
+                  v_edges[p_in_path.y][std::min(p_in_path.x, path[i-1].x)] = true;
+               }else if(p_in_path.y != path[i-1].y){//v_wire
+                  h_edges[p_in_path.x][std::min(p_in_path.y, path[i-1].y)] = true;
+               }else{
                   net->vias.push_back(Point(p_in_path.x, p_in_path.y, std::min(p_in_path.z, path[i-1].z)));
                }
-               M_Assert((p_in_path - path[i-1]).manh()==1, "path error");
                total_path.push_back(p_in_path);
             }
             //std::cout << "end pin: " << x << "," << y << "," << 0 << std::endl;
@@ -279,56 +298,43 @@ bool Layout::SearchEngine(Net *net, const Point & beg, size_t wl_lower_bound, si
    return false;
 }
 
-void Layout::Path2Wire(Net * n, std::vector<Point> & path){
-   M_Assert(path.size() >= 2, "path size must >= 2");
-   for(Point & p : path){
-      SetGrid(p.x, p.y, p.z, 3);
-   }
-   for(int z = 0; z < layers; z += 2){
-      for(int y = 0; y < height; ++y){
-         int beg_idx = 0;
-         for(int x = 0; x < width; ++x){
-            if(GetGrid(x, y, z) != 3){
-               if(x - beg_idx > 1){
-                  n->h_segments.push_back({beg_idx, y, z, x, y + 1, z});
-                  n->ori_wl += x - beg_idx -1;
-               }
-               beg_idx = x + 1;
+void Layout::Path2Wire(Net *n){
+   for(int i = 0; i < width; ++i){
+      int beg_idx = -1;
+      for(int j = 0; j < height - 1; ++j){
+         if(!h_edges[i][j]){
+            if(j - beg_idx >= 2){
+               n->v_segments.push_back({i, beg_idx + 1, 1, i + 1, j + 1, 1});
+               n->ori_wl += j - beg_idx -1;
             }
+            beg_idx = j;
          }
-         if(width - beg_idx > 1){
-            n->h_segments.push_back({beg_idx, y, z, width, y + 1, z});
-            n->ori_wl += width - beg_idx -1;
-         }
+         h_edges[i][j] = false;
+      }
+      if(height - 1 - beg_idx >= 2){
+         n->v_segments.push_back({i, beg_idx + 1, 1, i + 1, height, 1});
+         n->ori_wl += height - 1 - beg_idx -1;
       }
    }
 
-   for(int z = 1; z < layers; z += 2){
-      for(int x = 0; x < width; ++x){
-         int beg_idx = 0;
-         for(int y = 0; y < height; ++y){
-            if(GetGrid(x, y, z) != 3){
-               if(y - beg_idx > 1){
-                  n->v_segments.push_back({x, beg_idx, z, x + 1, y, z});
-                  n->ori_wl += y - beg_idx -1;
-               }
-               beg_idx = y + 1;
+   for(int i = 0; i < height; ++i){
+      int beg_idx = -1;
+      for(int j = 0; j < width - 1; ++j){
+         if(!v_edges[i][j]){
+            if(j - beg_idx >= 2){
+               n->h_segments.push_back({beg_idx + 1, i, 0, j + 1, i + 1, 0});
+               n->ori_wl += j - beg_idx -1;
             }
+            beg_idx = j;
          }
-         if(height - beg_idx > 1){
-            n->v_segments.push_back({x, beg_idx, z, x + 1, height, z});
-            n->ori_wl += height - beg_idx -1;
-         }
+         v_edges[i][j] = false;
       }
-   }
-   for(Point & p : path){
-      SetGrid(p.x, p.y, p.z, 1);
-   }
-   for(Point & p : n->pins){
-      SetGrid(p.x, p.y, p.z, 2);
+      if(width - 1 - beg_idx >= 2){
+         n->h_segments.push_back({beg_idx + 1, i, 0, width, i + 1, 0});
+         n->ori_wl += width - 1 - beg_idx -1;
+      }
    }
 }
-
 
 void Layout::SaveResult(const std::string & filename){
    std::ofstream fout;
