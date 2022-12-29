@@ -1,6 +1,6 @@
 #include "layout.h"
 
-Layout::Layout(int _width, int _height, int _layers) : width(_width), height(_height), layers(_layers), length(_width * _height * _layers){
+Layout::Layout(int _width, int _height, int _layers, int idx) : width(_width), height(_height), layers(_layers), length(_width * _height * _layers), layout_idx(idx), r_gen(idx){
    grids = new int[length]();
    visited = new bool[length]();
 }
@@ -12,6 +12,42 @@ Layout::~Layout(){
    delete [] grids;
    delete [] visited;
 }
+
+void Layout::Initialize(const std::vector<int> & obs_num, const std::vector<std::pair<int,int>> & obs_size_range, const std::vector<std::pair<int, Net_config>> & net_configs){
+   assert((int)obs_num.size() == layers);
+   assert(obs_num.size() == obs_size_range.size());
+   for(int i = 0; i < layers; ++i){
+      int counter = 0;
+      int obs_w = 1;
+      int obs_h = 1;
+      int pre_obs_num = obstacles.size();
+      while(counter < 10){
+         if(i % 2){//vertical layer
+            obs_h = randInt(r_gen, obs_size_range[i].first, obs_size_range[i].second);
+         }else{
+            obs_w = randInt(r_gen, obs_size_range[i].first, obs_size_range[i].second);
+         }
+         int x = randInt(r_gen, 0, width - obs_w - 1);
+         int y = randInt(r_gen, 0, height - obs_h - 1);
+         Point obs_p1(x, y, i);
+         Point obs_p2(x + obs_w, y + obs_h, i);
+         if(!AddObstacle(obs_p1, obs_p2)){
+            counter++;
+         }else{
+            if((int)obstacles.size() - pre_obs_num == obs_num[i]){
+               break;
+            }
+         }
+      }
+   }
+
+   for(const std::pair<int, Net_config> & net_config : net_configs){
+      for(int i = 0; i < net_config.first; ++i){
+         GenerateNet(net_config.second);
+      }
+   }
+}
+
 
 bool Layout::AddObstacle(Point & p1, Point & p2){
    M_Assert(p1.x <= p2.x && p1.y <= p2.y && p1.z <= p2.z, "invalid obstacle");
@@ -37,40 +73,37 @@ bool Layout::AddObstacle(Point & p1, Point & p2){
    return true;
 }
 
-bool Layout::GenerateNet(const std::pair<size_t, size_t> & wl_range, size_t wl_upper_bound, float momentum, int pin_num, unsigned seed, int repeat){
-   assert(pin_num >= 2);
-   srand(seed);
+bool Layout::GenerateNet(const Net_config & config){
+   assert(config.pin_num >= 2);
+   //srand(seed);
+   //std::mt19937 generator(seed);
    std::vector<Point>beg_candidates;
-   //std::mt19937 gen(seed);
-   for(int i = 0; i < repeat; ++i){
-      int beg_idx = randInt(0, length - 1);
-      for(int j = beg_idx; j < beg_idx + length; ++j){
-         int idx = j % length;
-         if(grids[idx] == 0 && idx % layers == 0){//empty grid at the bottom layer
-            int x = idx / (height * layers);
-            int y = (idx % (height * layers)) / layers;
-            int z = idx % layers;  
-            beg_candidates.push_back(Point(x, y, z));
-            break;
-         }
-      }
-      if(beg_candidates.empty()){
-         return false;
+   std::vector<int>candidates_idx;
+   
+   for(int i = 0; i < length; ++i){
+      if(grids[i] == 0 && i % layers == 0){//empty grid at the bottom layer
+         candidates_idx.push_back(i);
       }
    }
+   if(candidates_idx.empty()){
+      return false;
+   }
+   std::random_shuffle(candidates_idx.begin(), candidates_idx.end());
+   for(int i = 0; i < std::min(config.reroute_num,(int)candidates_idx.size()); ++i){
+      int idx = candidates_idx[i];
+      int x = idx / (height * layers);
+      int y = (idx % (height * layers)) / layers;
+      int z = idx % layers;  
+      beg_candidates.push_back(Point(x, y, z));
+   }
    bool success = false;
-   //std::vector<Point>path;
    std::vector<Point>total_path;
    Net * net = new Net(nets.size(), {});
    for(Point beg : beg_candidates){
-      //first two-pin
-      success = SearchEngine(net, beg, randInt(wl_range.first, wl_range.second), wl_upper_bound, momentum, total_path);
+      success = SearchEngine(net, beg, randInt(r_gen, config.min_wl, config.max_wl), config.wl_limit, config.momentum1, total_path);
       if(success){
          net->pins.push_back(beg);
          SetGrid(beg.x, beg.y, beg.z, 2);
-         //nets.push_back(net);
-         //SaveResult("test" + std::to_string(1)+".txt");
-         //nets.pop_back();
          break;
       }
    }
@@ -79,12 +112,11 @@ bool Layout::GenerateNet(const std::pair<size_t, size_t> & wl_range, size_t wl_u
       return false;
    }
    //route the rest pins
-   
-   for(int i = 2; i < pin_num; ++i){
+   for(int i = 2; i < config.pin_num; ++i){
       success = false;
       beg_candidates.clear();
-      for(int j = 0; j < repeat; ++j){
-         int beg_idx = randInt(0, total_path.size() - 1);
+      for(int j = 0; j < config.reroute_num; ++j){
+         int beg_idx = randInt(r_gen, 0, total_path.size() - 1);
          for(int k = beg_idx; k < beg_idx + (int)total_path.size(); k++){
             int idx = k % total_path.size();
             int x = total_path[idx].x;
@@ -101,12 +133,8 @@ bool Layout::GenerateNet(const std::pair<size_t, size_t> & wl_range, size_t wl_u
          }
       }
       for(Point beg : beg_candidates){
-         success = SearchEngine(net, beg, randInt(wl_range.first, wl_range.second), wl_upper_bound, momentum, total_path);
+         success = SearchEngine(net, beg, randInt(r_gen, config.min_wl, config.max_wl), config.wl_limit, config.momentum2, total_path);
          if(success){
-            //std::cout << "beg pin: " << beg << std::endl;
-            //nets.push_back(net);
-            //SaveResult("test" + std::to_string(i)+".txt");
-            //nets.pop_back();
             break;
          }
       }
@@ -115,7 +143,7 @@ bool Layout::GenerateNet(const std::pair<size_t, size_t> & wl_range, size_t wl_u
          return false;
       }
    }
-   M_Assert((int)net->pins.size() == pin_num, "pin number error");
+   M_Assert((int)net->pins.size() == config.pin_num, "pin number error");
    nets.push_back(net);
    Path2Wire(net, total_path);
    return true;
@@ -123,17 +151,20 @@ bool Layout::GenerateNet(const std::pair<size_t, size_t> & wl_range, size_t wl_u
 
 bool Layout::SearchEngine(Net *net, const Point & beg, size_t wl_lower_bound, size_t wl_upper_bound, float momentum, std::vector<Point> & total_path){
    std::vector<Point>path;
-   std::vector<Point> candidates;
-   candidates.push_back(beg);
+   std::vector<std::pair<Point, Point>> candidates; //next point, previous point
+   //std::vector<Point> record;
+   candidates.push_back({beg, beg});
+   //record.push_back(beg);
    ResetVisited();
    while(candidates.size()){
-      Point p = candidates.back();
+      Point curr_p = candidates.back().first;
       candidates.pop_back();
+      //record.pop_back();
       size_t pre_size = candidates.size();
-      path.push_back(p);
-      int x = p.x;
-      int y = p.y;
-      int z = p.z;
+      path.push_back(curr_p);
+      int x = curr_p.x;
+      int y = curr_p.y;
+      int z = curr_p.z;
       SetVisited(x, y, z);
       SetGrid(x, y, z, 1);
 
@@ -156,9 +187,9 @@ bool Layout::SearchEngine(Net *net, const Point & beg, size_t wl_lower_bound, si
                if(p_in_path.x == path[i-1].x && p_in_path.y == path[i-1].y){
                   net->vias.push_back(Point(p_in_path.x, p_in_path.y, std::min(p_in_path.z, path[i-1].z)));
                }
+               M_Assert((p_in_path - path[i-1]).manh()==1, "path error");
                total_path.push_back(p_in_path);
             }
-            //Path2Wire(net, path);
             //std::cout << "end pin: " << x << "," << y << "," << 0 << std::endl;
             return true;
          }else{//recover grid mark
@@ -205,36 +236,44 @@ bool Layout::SearchEngine(Net *net, const Point & beg, size_t wl_lower_bound, si
       if(tmp1.size() == 2){
          int dist1 = (tmp1[0] - beg).manh();
          int dist2 = (tmp1[1] - beg).manh();
-         if(dist1 > dist2 || (dist1 == dist2 && rand() % 2)){
+         if(dist1 > dist2 || (dist1 == dist2 && randFloat(r_gen) > 0.5)){
             std::swap(tmp1[0], tmp1[1]);
          }
       }
       if(tmp2.size() == 2){
          int dist1 = (tmp2[0] - beg).manh();
          int dist2 = (tmp2[1] - beg).manh();
-         if(dist1 > dist2 || (dist1 == dist2 && rand() % 2)){
+         if(dist1 > dist2 || (dist1 == dist2 && randFloat(r_gen) > 0.5)){
             std::swap(tmp2[0], tmp2[1]);
          }
       }
-      if(((float) rand() / (RAND_MAX)) > momentum){//change direction
+      if(randFloat(r_gen) > momentum){//change direction
          for(Point & p : tmp1){
-            candidates.push_back(p);
+            candidates.push_back({p, curr_p});
+            //record.push_back(curr_p);
          }
          for(Point & p : tmp2){
-            candidates.push_back(p);
+            candidates.push_back({p, curr_p});
+            //record.push_back(curr_p);
          }
       }else{
          for(Point & p : tmp2){
-            candidates.push_back(p);
+            candidates.push_back({p, curr_p});
+            //record.push_back(curr_p);
          }
          for(Point & p : tmp1){
-            candidates.push_back(p);
+            candidates.push_back({p, curr_p});
+            //record.push_back(curr_p);
          }
       }
-      if(candidates.size() == pre_size){
-         Point & head = path.back();
-         SetGrid(head.x, head.y, head.z, 0);
-         path.pop_back();
+      if(candidates.size() == pre_size && candidates.size()){//no way to go
+         Point head = path.back();
+         while(head != candidates.back().second){
+            SetGrid(head.x, head.y, head.z, 0);
+            path.pop_back();
+            M_Assert(path.size(), "path size must > 0");
+            head = path.back();
+         }
       }
    }
    return false;
@@ -337,4 +376,40 @@ void Layout::SaveResult(const std::string & filename){
    }
 
 	fout.close();
+}
+
+void Layout::CheckLegal(){
+   bool test_grid[width][height][layers];
+   for(int x = 0; x < width; ++x){
+      for(int y = 0; y < height; ++y){
+         for(int z = 0; z < layers; ++z){
+            test_grid[x][y][z] = false;
+         }
+      }
+   }
+   for(Net * n : nets){
+      for(std::vector<int> & seg : n->h_segments){
+         int y = seg[1];
+         int z = seg[2];
+         for(int x = seg[0]; x < seg[3]; ++x){
+            if(test_grid[x][y][z]){
+               std::cerr << "H Error: " << x << " " << y << " " << z << std::endl;
+            }
+            test_grid[x][y][z] = true;
+         }
+      }
+      for(std::vector<int> & seg : n->v_segments){
+         int x = seg[0];
+         int z = seg[2];
+         for(int y = seg[1]; y< seg[4]; ++y){
+            if(test_grid[x][y][z]){
+               std::cerr << "V Error: " << x << " " << y << " " << z << std::endl;
+            }
+            test_grid[x][y][z] = true;
+         }
+      }
+      for(Point & p : n->pins){
+         test_grid[p.x][p.y][p.z] = true;
+      }
+   }
 }

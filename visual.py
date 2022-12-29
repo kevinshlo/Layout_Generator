@@ -58,31 +58,36 @@ for count, file in enumerate(file_list):
             #read pins
             line = f.readline().split()
             pin_num = int(line[1])
-            for i in range(pin_num):
+            for _ in range(pin_num):
                 line = f.readline().split()
+                #if net_id == 166:
                 pin_list.append([int(line[0]), int(line[1]), int(line[2])])
                 pin_id_list.append(net_id)
 
             #read vias
             line = f.readline().split()
             via_num = int(line[1])
-            for i in range(via_num):
+            for _ in range(via_num):
                 line = f.readline().split()
+                #if net_id == 166:
                 via_list.append([int(line[0]), int(line[1])])
 
             #read horizontal wires
             line = f.readline().split()
             h_seg_num = int(line[1])
-            for i in range(h_seg_num):
+            for _ in range(h_seg_num):
                 line = f.readline().split()
+                #if net_id == 166:
                 h_wire_list.append([int(line[0]), int(line[1]), int(line[3]), int(line[4])])
 
             #read vertical wires
             line = f.readline().split()
             v_seg_num = int(line[1])
-            for i in range(v_seg_num):
+            for _ in range(v_seg_num):
                 line = f.readline().split()
+                #if net_id == 166:
                 v_wire_list.append([int(line[0]), int(line[1]), int(line[3]), int(line[4])])
+        
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.set_aspect('equal',adjustable='box')
@@ -95,20 +100,20 @@ for count, file in enumerate(file_list):
             ax.add_patch(rect)
 
         for wire in h_wire_list:
-            rect = Rectangle((wire[0], wire[1]),wire[2]-wire[0], 1, color="green", alpha = 0.3)
+            rect = Rectangle((0.25 + wire[0], 0.25 + wire[1]),wire[2]-wire[0]-0.5, 0.5, color="green", alpha = 0.3)
             ax.add_patch(rect)
 
         for wire in v_wire_list:
-            rect = Rectangle((wire[0], wire[1]),1, wire[3]-wire[1], color="blue", alpha = 0.5)
+            rect = Rectangle((0.25 + wire[0], 0.25 + wire[1]),0.5, wire[3]-wire[1]-0.5, color="blue", alpha = 0.5)
             ax.add_patch(rect)
 
         for pin, id in zip(pin_list, pin_id_list):
-            rect = Rectangle((pin[0],pin[1]), 1, 1, color="orange", alpha = 0.7)
+            rect = Rectangle((pin[0],pin[1]), 1, 1, color="orange", alpha = 0.5)
             ax.add_patch(rect)
-            ax.annotate(id, (pin[0] + 0.5, pin[1] + 0.5), color='black', fontsize=5, ha='center', va='center')
+            ax.annotate(id, (pin[0] + 0.5, pin[1] + 0.5), color='black', fontsize=3, ha='center', va='center')
 
         for via in via_list:
-            rect = Rectangle((via[0], via[1]), 1, 1, color="red", fill=False,alpha = 1)
+            rect = Rectangle((0.25 + via[0], 0.25 + via[1]), 0.5, 0.5, color="red", fill=False,alpha = 1)
             ax.add_patch(rect)
         plt.xlim([0,width])
         plt.ylim([0,height])

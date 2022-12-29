@@ -1,49 +1,36 @@
 #include <iostream>
+#include "net_config.h"
 #include "layout.h"
 
 int main(){
-    Layout L(50, 50, 2);
-    int width = 1;
-    int height = 1;
-    int counter = 0;
-    int obs_num = randInt(2, 4);
-    while(counter < obs_num){
-        width = randInt(2, 8);
-        int x = randInt(0, 50 - width - 1);
-        int y = randInt(0, 50 - height - 1);
-        Point p1(x, y, 0);
-        Point p2(x + width, y + height, 0);
-        if(L.AddObstacle(p1, p2)){
-            counter++;
-        }
-    }
-    obs_num = randInt(2, 4);
-    width = 1;
-    counter = 0;
-    while(counter < obs_num){
-        height = randInt(2, 8);
-        int x = randInt(0, 50 - width - 1);
-        int y = randInt(0, 50 - height - 1);
-        Point p1(x, y, 1);
-        Point p2(x + width, y + height, 1);
-        if(L.AddObstacle(p1, p2)){
-            counter++;
-        }
-    }
+    Layout L(50, 50, 2, 0);
+    Net_config net_2_pins(5, 25, 60, 2, 20, 0.85);
+    Net_config net_3_pins(10, 20, 60, 3, 10, 0.85, 1.0);
+    Net_config net_4_pins(10, 20, 60, 4, 10, 0.85, 1.0);
+    Net_config net_5_pins(5, 15, 60, 5, 10, 0.85, 1.0);
+    Net_config test_conf(10, 20, 60, 3, 10, 0.95, 1.0);
+    L.Initialize({4,4}, {{3, 10},{3,10}}, {{5, net_5_pins}, {5, net_4_pins}, {10, net_3_pins}, {30, net_2_pins}});
+    //L.Initialize({4,4}, {{3, 10},{3,10}}, {{150, test_conf}});
+    std::cout << L.nets.size() << std::endl;
+    L.CheckLegal();
+    L.SaveResult("test.txt");
+
+    
     //L.GenerateNet({5, 10}, 60, 1.0, 5, 17);
     //L.SaveResult("test_0.txt");
     
     //std::cout << "         " << std::endl;
-    for(int i = 0; i < 20; ++i){
-        if(L.GenerateNet({10, 25}, 60, 1.0, 5, i)){
+    /*
+    for(int i = 0; i < 200; ++i){
+        if(L.GenerateNet({7, 35}, 60, 0.85, 0.99, 3, 50)){
             std::cout << "Create net " << i << " success" << std::endl;
         }else{
             std::cout << "Create net " << i << " fail" << std::endl;
         }
     }
-    
-    
+    std::cout << L.nets.size() << std::endl;
+    L.CheckLegal();
     L.SaveResult("test.txt");
-    
+    */
     return 0;
 }
