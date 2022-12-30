@@ -7,8 +7,11 @@ class Net{
 public:
    Net(int id, std::vector<Point> pins_);
    ~Net();
+
+   void reset();
+
    const size_t net_id;
-   int ori_wl;
+   int wl;
    std::vector<Point> pins;
    std::vector<Point> vias;//z coordinate is the bottom layer of the via
    std::vector<std::vector<int>> h_segments;

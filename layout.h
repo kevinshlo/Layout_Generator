@@ -35,39 +35,42 @@ class Layout{
 public:
    Layout(int _width, int _height, int _layers, int idx);
    ~Layout();
-   inline void SetGrid(int x, int y, int z, int value){
+   
+   void autoConfig(std::vector<std::pair<int, Net_config>> & net_configs);
+   void generateObstacles(const std::vector<int> & obs_num, const std::vector<std::pair<int,int>> & obs_size_range);
+   bool addObstacle(Point & p1, Point & p2);
+   void generateNets(const std::vector<std::pair<int, Net_config>> & net_configs);
+   bool generateNet(const Net_config & config);
+   void saveResult(const std::string & filename);
+   void checkLegal();
+
+   std::vector<Net *> nets;
+   std::vector<std::pair<Point, Point>>obstacles;
+protected:
+   void archiveAndReset();//free memory and only keep net pins result, after this function is called, net can't be generated anymore
+private:
+   inline void setGrid(int x, int y, int z, int value){
       M_Assert(x >= 0 && x < width && y >= 0 && y < height && z >= 0 && z < layers, "out of range");
       grids[x * height * layers + y * layers + z] = value;
    }
-   inline int GetGrid(int x, int y, int z) const{
+   inline int getGrid(int x, int y, int z) const{
       M_Assert(x >= 0 && x < width && y >= 0 && y < height && z >= 0 && z < layers, "out of range");
       return grids[x * height * layers + y * layers + z];
    }
-   inline void SetVisited(int x, int y, int z){
+   inline void setVisited(int x, int y, int z){
       M_Assert(x >= 0 && x < width && y >= 0 && y < height && z >= 0 && z < layers, "out of range");
       visited[x * height * layers + y * layers + z] = true;
    }
-   inline bool GetVisited(int x, int y, int z) const{
+   inline bool getVisited(int x, int y, int z) const{
       M_Assert(x >= 0 && x < width && y >= 0 && y < height && z >= 0 && z < layers, "out of range");
       return visited[x * height * layers + y * layers + z];
    }
-   inline void ResetVisited(){
+   inline void resetVisited(){
       memset(visited, 0, sizeof(bool) * length);
    }
-   void AutoConfig(std::vector<std::pair<int, Net_config>> & net_configs);
-   void GenerateObstacle(const std::vector<int> & obs_num, const std::vector<std::pair<int,int>> & obs_size_range);
-   bool AddObstacle(Point & p1, Point & p2);
-   void GenerateNets(const std::vector<std::pair<int, Net_config>> & net_configs);
-   bool GenerateNet(const Net_config & config);
-   
-   void SaveResult(const std::string & filename);
-   void CheckLegal();
-   std::vector<Net *> nets;
-   std::vector<std::pair<Point, Point>>obstacles;
 
-private:
-   bool SearchEngine(Net *net, const Point & beg, size_t wl_lower_bound, size_t wl_upper_bound, float momentum, std::vector<Point> & total_path);
-   void Path2Wire(Net * n);
+   bool searchEngine(Net *net, const Point & beg, size_t wl_lower_bound, size_t wl_upper_bound, float momentum, std::vector<Point> & total_path);
+   void path2Wire(Net * n);
 
    const int width;
    const int height;

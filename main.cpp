@@ -8,14 +8,15 @@ int main(){
     for(int i = 0; i < test_num; ++i){
         net_configs.clear();
         Layout L(50, 50, 2, i);
-        L.GenerateObstacle({4,4}, {{3, 10},{3,10}});
-        L.AutoConfig(net_configs);
-        L.GenerateNets(net_configs);
+        L.generateObstacles({4,4}, {{3, 10},{3,10}});
+        L.autoConfig(net_configs);
+        L.generateNets(net_configs);
 #ifdef DEBUG
-        L.CheckLegal();
+        L.checkLegal();
 #endif
         std::string file_name = "test" + std::to_string(i) + ".txt";
-        L.SaveResult(file_name);
+        L.saveResult(file_name);
+        //L.archiveAndReset();
         std::cout << std::endl;
     }
     return 0;
