@@ -22,7 +22,23 @@ Layout::~Layout(){
    delete [] visited;
 }
 
-void Layout::Initialize(const std::vector<int> & obs_num, const std::vector<std::pair<int,int>> & obs_size_range, const std::vector<std::pair<int, Net_config>> & net_configs){
+void Layout::AutoConfig(std::vector<std::pair<int, Net_config>> & net_configs){
+   size_t wl_limit = std::max(width, height) * 1.5;
+   Net_config net_2_pins(5,  25, wl_limit, 2, 20, 0.85);
+   Net_config net_3_pins(7,  20, wl_limit, 3, 15, 0.85);
+   Net_config net_4_pins(7,  20, wl_limit, 4, 10, 0.85);
+   Net_config net_5_pins(5,  20, wl_limit, 5, 10, 0.85);
+   std::normal_distribution<float> distribution_2(30.0, 2.0);
+   std::normal_distribution<float> distribution_3(10.0, 1.5);
+   std::normal_distribution<float> distribution_4(5.0, 1.0);
+   std::normal_distribution<float> distribution_5(5.0, 1.0);
+   net_configs.push_back({(int) std::round(distribution_5(r_gen)), net_5_pins});
+   net_configs.push_back({(int) std::round(distribution_4(r_gen)), net_4_pins});
+   net_configs.push_back({(int) std::round(distribution_3(r_gen)), net_3_pins});
+   net_configs.push_back({(int) std::round(distribution_2(r_gen)), net_2_pins});
+}
+
+void Layout::GenerateObstacle(const std::vector<int> & obs_num, const std::vector<std::pair<int,int>> & obs_size_range){
    assert((int)obs_num.size() == layers);
    assert(obs_num.size() == obs_size_range.size());
    for(int i = 0; i < layers; ++i){
@@ -49,19 +65,19 @@ void Layout::Initialize(const std::vector<int> & obs_num, const std::vector<std:
          }
       }
    }
+}
 
+void Layout::GenerateNets(const std::vector<std::pair<int, Net_config>> & net_configs){
    for(const std::pair<int, Net_config> & net_config : net_configs){
       int counter = 0;
       for(int i = 0; i < net_config.first; ++i){
          if(GenerateNet(net_config.second)){
             counter++;
          }
-         //GenerateNet(net_config.second);
       }
       std::cout << "Created " << net_config.second.pin_num << " pins net: " << counter << std::endl;
    }
 }
-
 
 bool Layout::AddObstacle(Point & p1, Point & p2){
    M_Assert(p1.x <= p2.x && p1.y <= p2.y && p1.z <= p2.z, "invalid obstacle");
@@ -88,9 +104,7 @@ bool Layout::AddObstacle(Point & p1, Point & p2){
 }
 
 bool Layout::GenerateNet(const Net_config & config){
-   assert(config.pin_num >= 2);
-   //srand(seed);
-   //std::mt19937 generator(seed);
+   assert(config.pin_num >= 2);//some function doesn't support more than 2 layers
    std::vector<Point>beg_candidates;
    std::vector<int>candidates_idx;
    
@@ -160,21 +174,17 @@ bool Layout::GenerateNet(const Net_config & config){
    M_Assert((int)net->pins.size() == config.pin_num, "pin number error");
    nets.push_back(net);
    Path2Wire(net);
-   //Path2Wire(net, total_path);
    return true;
 }
 
 bool Layout::SearchEngine(Net *net, const Point & beg, size_t wl_lower_bound, size_t wl_upper_bound, float momentum, std::vector<Point> & total_path){
    std::vector<Point>path;
    std::vector<std::pair<Point, Point>> candidates; //next point, previous point
-   //std::vector<Point> record;
    candidates.push_back({beg, beg});
-   //record.push_back(beg);
    ResetVisited();
    while(candidates.size()){
       Point curr_p = candidates.back().first;
       candidates.pop_back();
-      //record.pop_back();
       size_t pre_size = candidates.size();
       path.push_back(curr_p);
       int x = curr_p.x;
@@ -209,7 +219,6 @@ bool Layout::SearchEngine(Net *net, const Point & beg, size_t wl_lower_bound, si
                }
                total_path.push_back(p_in_path);
             }
-            //std::cout << "end pin: " << x << "," << y << "," << 0 << std::endl;
             return true;
          }else{//recover grid mark
             while(path.size() != path_size){
@@ -269,20 +278,16 @@ bool Layout::SearchEngine(Net *net, const Point & beg, size_t wl_lower_bound, si
       if(randFloat(r_gen) > momentum){//change direction
          for(Point & p : tmp1){
             candidates.push_back({p, curr_p});
-            //record.push_back(curr_p);
          }
          for(Point & p : tmp2){
             candidates.push_back({p, curr_p});
-            //record.push_back(curr_p);
          }
       }else{
          for(Point & p : tmp2){
             candidates.push_back({p, curr_p});
-            //record.push_back(curr_p);
          }
          for(Point & p : tmp1){
             candidates.push_back({p, curr_p});
-            //record.push_back(curr_p);
          }
       }
       if(candidates.size() == pre_size && candidates.size()){//no way to go

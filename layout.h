@@ -4,6 +4,7 @@
 #include <iostream>
 #include <random>
 #include <ctime>
+#include <cmath>
 #include <vector>
 #include <queue>
 #include <set>
@@ -53,20 +54,21 @@ public:
    inline void ResetVisited(){
       memset(visited, 0, sizeof(bool) * length);
    }
-   void Initialize(const std::vector<int> & obs_num, const std::vector<std::pair<int,int>> & obs_size_range, const std::vector<std::pair<int, Net_config>> & net_configs);
+   void AutoConfig(std::vector<std::pair<int, Net_config>> & net_configs);
+   void GenerateObstacle(const std::vector<int> & obs_num, const std::vector<std::pair<int,int>> & obs_size_range);
    bool AddObstacle(Point & p1, Point & p2);
+   void GenerateNets(const std::vector<std::pair<int, Net_config>> & net_configs);
    bool GenerateNet(const Net_config & config);
-   bool SearchEngine(Net *net, const Point & beg, size_t wl_lower_bound, size_t wl_upper_bound, float momentum, std::vector<Point> & total_path);
-   void Path2Wire(Net * n);
+   
    void SaveResult(const std::string & filename);
    void CheckLegal();
-   //std::vector<Point> pins;
    std::vector<Net *> nets;
-   //std::vector<Point> vias;//z coordinate is the bottom layer of the via
    std::vector<std::pair<Point, Point>>obstacles;
-   //std::vector<std::vector<int>> h_segments;
-   //std::vector<std::vector<int>> v_segments;
+
 private:
+   bool SearchEngine(Net *net, const Point & beg, size_t wl_lower_bound, size_t wl_upper_bound, float momentum, std::vector<Point> & total_path);
+   void Path2Wire(Net * n);
+
    const int width;
    const int height;
    const int layers;

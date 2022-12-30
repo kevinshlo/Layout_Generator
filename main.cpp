@@ -3,17 +3,20 @@
 #include "layout.h"
 
 int main(){
-    Layout L(50, 50, 2, 0);
-    Net_config net_2_pins(5, 25, 60, 2, 20, 0.85);
-    Net_config net_3_pins(10, 20, 60, 3, 10, 0.85, 1.0);
-    Net_config net_4_pins(10, 20, 60, 4, 10, 0.85, 1.0);
-    Net_config net_5_pins(5, 15, 60, 5, 10, 0.85, 1.0);
-    Net_config test_conf(10, 20, 60, 3, 10, 0.85, 1.0);
-    L.Initialize({4,4}, {{3, 10},{3,10}}, {{5, net_5_pins}, {5, net_4_pins}, {10, net_3_pins}, {30, net_2_pins}});
-    //L.Initialize({4,4}, {{3, 10},{3,10}}, {{100, test_conf}});
-    //std::cout << L.nets.size() << std::endl;
-    L.CheckLegal();
-    L.SaveResult("test.txt");
-
+    std::vector<std::pair<int, Net_config>> net_configs;
+    int test_num = 10;
+    for(int i = 0; i < test_num; ++i){
+        net_configs.clear();
+        Layout L(50, 50, 2, i);
+        L.GenerateObstacle({4,4}, {{3, 10},{3,10}});
+        L.AutoConfig(net_configs);
+        L.GenerateNets(net_configs);
+#ifdef DEBUG
+        L.CheckLegal();
+#endif
+        std::string file_name = "test" + std::to_string(i) + ".txt";
+        L.SaveResult(file_name);
+        std::cout << std::endl;
+    }
     return 0;
 }
