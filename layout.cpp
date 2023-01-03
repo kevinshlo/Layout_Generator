@@ -43,9 +43,9 @@ void Layout::autoConfig(std::vector<std::pair<int, Net_config>> & net_configs){
 }
 
 void Layout::generateObstacles(const std::vector<int> & obs_num, const std::vector<std::pair<int,int>> & obs_size_range){
-   assert((int)obs_num.size() == layers);
+   assert((int)obs_num.size() <= layers);
    assert(obs_num.size() == obs_size_range.size());
-   for(int i = 0; i < layers; ++i){
+   for(int i = 0; i < (int)obs_num.size(); ++i){
       int counter = 0;
       int obs_w = 1;
       int obs_h = 1;
