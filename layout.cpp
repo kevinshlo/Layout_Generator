@@ -132,7 +132,7 @@ bool Layout::generateNet(const Net_config & config){
    if(candidates_idx.empty()){
       return false;
    }
-   std::random_shuffle(candidates_idx.begin(), candidates_idx.end());
+   std::shuffle(candidates_idx.begin(), candidates_idx.end(), r_gen);
    for(int i = 0; i < std::min(config.reroute_num,(int)candidates_idx.size()); ++i){
       int idx = candidates_idx[i];
       int x = idx / (height * layers);
