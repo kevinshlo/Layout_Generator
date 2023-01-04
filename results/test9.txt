@@ -1,7 +1,7 @@
 Width 50
 Height 50
 Layer 2
-Total_WL 1082
+Total_WL 1280
 Obstacle_num 8
 17 24 0 20 25 0
 21 0 0 27 1 0

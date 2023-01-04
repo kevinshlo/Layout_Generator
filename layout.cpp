@@ -320,6 +320,7 @@ bool Layout::searchEngine(Net *net, const Point & beg, size_t wl_lower_bound, si
 }
 
 void Layout::path2Wire(Net *n){
+   n->wl = n->vias.size();
    for(int i = 0; i < width; ++i){
       int beg_idx = -1;
       for(int j = 0; j < height - 1; ++j){
