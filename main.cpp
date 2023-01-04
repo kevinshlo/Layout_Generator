@@ -9,8 +9,10 @@ int main(){
         net_configs.clear();
         Layout L(50, 50, 2, i);
         L.generateObstacles({4,4}, {{3, 10},{3,10}});
+        //Net_config net_2_pins(10, 35, 60, 2, 20, 0.85);
         L.autoConfig(net_configs);
         L.generateNets(net_configs);
+        //L.generateNets({{200, net_2_pins}});
 #ifdef DEBUG
         L.checkLegal();
 #endif

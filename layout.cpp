@@ -1,6 +1,6 @@
 #include "layout.h"
 
-Layout::Layout(int _width, int _height, int _layers, int idx) : width(_width), height(_height), layers(_layers), length(_width * _height * _layers), layout_idx(idx), r_gen(idx){
+Layout::Layout(int _width, int _height, int _layers, int idx) : layout_idx(idx), width(_width), height(_height), layers(_layers), length(_width * _height * _layers), r_gen(idx){
    assert(layers == 2);
    grids = new int[length]();
    h_edges.resize(width);
@@ -121,7 +121,6 @@ void Layout::archiveAndReset(){
 
 bool Layout::generateNet(const Net_config & config){
    assert(config.pin_num >= 2);//some function doesn't support more than 2 layers
-   std::vector<Point>beg_candidates;
    std::vector<int>candidates_idx;
    
    for(int i = 0; i < length; ++i){
@@ -129,71 +128,67 @@ bool Layout::generateNet(const Net_config & config){
          candidates_idx.push_back(i);
       }
    }
-   if(candidates_idx.empty()){
-      return false;
-   }
+   
+   std::vector<Point>total_path;
+   std::vector<Point>n_vias;
+   std::vector<Point>n_pins;
    std::shuffle(candidates_idx.begin(), candidates_idx.end(), r_gen);
    for(int i = 0; i < std::min(config.reroute_num,(int)candidates_idx.size()); ++i){
       int idx = candidates_idx[i];
       int x = idx / (height * layers);
       int y = (idx % (height * layers)) / layers;
       int z = idx % layers;  
-      beg_candidates.push_back(Point(x, y, z));
-   }
-   bool success = false;
-   std::vector<Point>total_path;
-   Net * net = new Net(nets.size(), {});
-   for(Point beg : beg_candidates){
-      success = searchEngine(net, beg, randInt(r_gen, config.min_wl, config.max_wl), config.wl_limit, config.momentum1, total_path);
-      if(success){
-         net->pins.push_back(beg);
+      //beg_candidates.push_back(Point(x, y, z));
+      Point beg(x, y, z);
+      Point result = searchEngine(beg, randInt(r_gen, config.min_wl, config.max_wl), config.wl_limit, config.momentum1, total_path, n_vias);
+      if(result.x != -1){
+         n_pins.push_back(beg);
+         n_pins.push_back(result);
          setGrid(beg.x, beg.y, beg.z, 2);
+         setGrid(result.x, result.y, result.z, 2);
          break;
       }
    }
-   if(!success){
-      delete net;
+   if(n_pins.empty()){
+      recoverGridAndEdge(total_path);
       return false;
    }
+
    //route the rest pins
    for(int i = 2; i < config.pin_num; ++i){
-      success = false;
-      beg_candidates.clear();
-      for(int j = 0; j < config.reroute_num; ++j){
-         int beg_idx = randInt(r_gen, 0, total_path.size() - 1);
-         for(int k = beg_idx; k < beg_idx + (int)total_path.size(); k++){
-            int idx = k % total_path.size();
-            int x = total_path[idx].x;
-            int y = total_path[idx].y;
-            int z = total_path[idx].z;
-            if(getGrid(x, y, z) == 1){//wire grid at the bottom layer
-               beg_candidates.push_back(Point(x, y, z));
-               break;
-            }
-         }
-         if(beg_candidates.empty()){
-            delete net;
-            return false;
+      std::vector<Point>candidates_beg;
+      for(Point & p_in_path : total_path){
+         int status = getGrid(p_in_path.x, p_in_path.y, p_in_path.z);
+         if(status == 1 || status == 2){//wire or pin
+            candidates_beg.push_back(p_in_path);
          }
       }
-      for(Point beg : beg_candidates){
-         success = searchEngine(net, beg, randInt(r_gen, config.min_wl, config.max_wl), config.wl_limit, config.momentum2, total_path);
-         if(success){
+      std::shuffle(candidates_beg.begin(), candidates_beg.end(), r_gen);
+      for(int j = 0; j < std::min(config.reroute_num, (int)candidates_beg.size()); ++j){
+         int x = candidates_beg[j].x;
+         int y = candidates_beg[j].y;
+         int z = candidates_beg[j].z;
+         Point result = searchEngine(Point(x, y, z), randInt(r_gen, config.min_wl, config.max_wl), config.wl_limit, config.momentum2, total_path, n_vias);
+         if(result.x != -1){
+            n_pins.push_back(result);
+            setGrid(result.x, result.y, result.z, 2);
             break;
          }
       }
-      if(!success){
-         delete net;
+      if((int)n_pins.size() != i + 1){
+         recoverGridAndEdge(total_path);
          return false;
       }
    }
+   Net * net = new Net(nets.size(), n_pins);
    M_Assert((int)net->pins.size() == config.pin_num, "pin number error");
+
    nets.push_back(net);
-   path2Wire(net);
+   path2Wire(net, n_vias);
    return true;
 }
 
-bool Layout::searchEngine(Net *net, const Point & beg, size_t wl_lower_bound, size_t wl_upper_bound, float momentum, std::vector<Point> & total_path){
+Point Layout::searchEngine(const Point & beg, size_t wl_lower_bound, size_t wl_upper_bound, float momentum, std::vector<Point> & total_path, std::vector<Point> & n_vias){
    std::vector<Point>path;
    std::vector<std::pair<Point, Point>> candidates; //next point, previous point
    candidates.push_back({beg, beg});
@@ -217,11 +212,10 @@ bool Layout::searchEngine(Net *net, const Point & beg, size_t wl_lower_bound, si
                flag = false;
                break;
             }
-            setGrid(x, y, z_i, 2);
+            setGrid(x, y, z_i, 1);
             path.push_back(Point(x, y, z_i));
          }
          if(flag){
-            net->pins.push_back(Point(x, y, 0));
             total_path.push_back(path.front());
             for(size_t i = 1; i < path.size(); ++i){
                Point & p_in_path = path[i];
@@ -231,11 +225,11 @@ bool Layout::searchEngine(Net *net, const Point & beg, size_t wl_lower_bound, si
                }else if(p_in_path.y != path[i-1].y){//v_wire
                   h_edges[p_in_path.x][std::min(p_in_path.y, path[i-1].y)] = true;
                }else{
-                  net->vias.push_back(Point(p_in_path.x, p_in_path.y, std::min(p_in_path.z, path[i-1].z)));
+                  n_vias.push_back(Point(p_in_path.x, p_in_path.y, std::min(p_in_path.z, path[i-1].z)));
                }
                total_path.push_back(p_in_path);
             }
-            return true;
+            return Point(x, y, 0);
          }else{//recover grid mark
             while(path.size() != path_size){
                Point & tail = path.back();
@@ -245,7 +239,7 @@ bool Layout::searchEngine(Net *net, const Point & beg, size_t wl_lower_bound, si
          }
       }
       if(path.size() > wl_upper_bound){
-         return false;
+         return Point(-1,-1,-1);
       }
 
       std::vector<Point> tmp1;
@@ -316,10 +310,28 @@ bool Layout::searchEngine(Net *net, const Point & beg, size_t wl_lower_bound, si
          }
       }
    }
-   return false;
+   return Point(-1,-1,-1);
 }
 
-void Layout::path2Wire(Net *n){
+void Layout::recoverGridAndEdge(const std::vector<Point> & total_path){
+   for(const Point & p : total_path){
+      setGrid(p.x, p.y, p.z, 0);
+   }
+   for(std::vector<bool> & h_e : h_edges){
+      for(size_t i = 0; i < h_e.size(); ++i){
+         h_e[i] = false;
+      }
+   }
+   for(std::vector<bool> & v_e : v_edges){
+      for(size_t i = 0; i < v_e.size(); ++i){
+         v_e[i] = false;
+      }
+   }
+}
+
+
+void Layout::path2Wire(Net *n, std::vector<Point>& n_vias){
+   n->vias.swap(n_vias);
    n->wl = n->vias.size();
    for(int i = 0; i < width; ++i){
       int beg_idx = -1;

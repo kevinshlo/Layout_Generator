@@ -46,8 +46,13 @@ public:
 
    std::vector<Net *> nets;
    std::vector<std::pair<Point, Point>>obstacles;
+   const int layout_idx;
 protected:
    void archiveAndReset();//free memory and only keep net pins result, after this function is called, net can't be generated anymore
+   const int width;
+   const int height;
+   const int layers;
+   const int length;
 private:
    inline void setGrid(int x, int y, int z, int value){
       M_Assert(x >= 0 && x < width && y >= 0 && y < height && z >= 0 && z < layers, "out of range");
@@ -69,14 +74,11 @@ private:
       memset(visited, 0, sizeof(bool) * length);
    }
 
-   bool searchEngine(Net *net, const Point & beg, size_t wl_lower_bound, size_t wl_upper_bound, float momentum, std::vector<Point> & total_path);
-   void path2Wire(Net * n);
+   Point searchEngine(const Point & beg, size_t wl_lower_bound, size_t wl_upper_bound, float momentum, std::vector<Point> & total_path, std::vector<Point> & n_vias);
+   void path2Wire(Net * n, std::vector<Point>& n_vias);
+   void recoverGridAndEdge(const std::vector<Point> & total_path);
 
-   const int width;
-   const int height;
-   const int layers;
-   const int length;
-   const int layout_idx;
+   
    std::mt19937 r_gen;
    int * grids; //-1: obstacle, 0: empty, 1: net 2: pin
    std::vector<std::vector<bool>> h_edges;
