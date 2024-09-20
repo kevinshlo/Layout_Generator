@@ -7,8 +7,14 @@ int main(){
     int test_num = 10;
     for(int i = 0; i < test_num; ++i){
         net_configs.clear();
-        Layout L(50, 50, 2, i);
-        L.generateObstacles({4,4}, {{3, 10},{3,10}});
+        const int layers = 2;
+        Layout L(50, 50, layers, i);
+        const int obs_num = 4;
+        const std::pair<int, int> obs_size_range = {3, 10};
+        L.generateObstacles(
+            std::vector<int>(layers, obs_num), 
+            std::vector<std::pair<int, int>>(layers, obs_size_range)
+        );
         //Net_config net_2_pins(10, 35, 60, 2, 20, 0.85);
         L.autoConfig(net_configs);
         L.generateNets(net_configs);

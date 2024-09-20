@@ -1,8 +1,11 @@
 #include "layout.h"
 
+#define MAX_LAYER 2  // this limits searchEngine to only route on layer 0 & 1
+
 Layout::Layout(int _width, int _height, int _layers, int idx) : layout_idx(idx), width(_width), height(_height), layers(_layers), length(_width * _height * _layers), r_gen(idx){
-   assert(layers == 2);
+   // assert(layers == 2);
    grids = new int[length]();
+   /** LAYER: only 2 layers */
    h_edges.resize(width);
    for(std::vector<bool> & h_e : h_edges){
       h_e.resize(height - 1, false);
@@ -142,6 +145,7 @@ bool Layout::generateNet(const Net_config & config){
       Point beg(x, y, z);
       Point result = searchEngine(beg, randInt(r_gen, config.min_wl, config.max_wl), config.wl_limit, config.momentum1, total_path, n_vias);
       if(result.x != -1){
+         M_Assert(result.z == 0, "result.z == 0");  // under layer = 2
          n_pins.push_back(beg);
          n_pins.push_back(result);
          setGrid(beg.x, beg.y, beg.z, 2);
@@ -161,6 +165,7 @@ bool Layout::generateNet(const Net_config & config){
          int status = getGrid(p_in_path.x, p_in_path.y, p_in_path.z);
          if(status == 1 || status == 2){//wire or pin
             candidates_beg.push_back(p_in_path);
+            M_Assert(p_in_path.z <= 1, "p_in_path.z <= 1");  // under layer = 2
          }
       }
       std::shuffle(candidates_beg.begin(), candidates_beg.end(), r_gen);
@@ -170,6 +175,7 @@ bool Layout::generateNet(const Net_config & config){
          int z = candidates_beg[j].z;
          Point result = searchEngine(Point(x, y, z), randInt(r_gen, config.min_wl, config.max_wl), config.wl_limit, config.momentum2, total_path, n_vias);
          if(result.x != -1){
+            M_Assert(result.z == 0, "result.z == 0");  // under layer = 2
             n_pins.push_back(result);
             setGrid(result.x, result.y, result.z, 2);
             break;
@@ -207,6 +213,7 @@ Point Layout::searchEngine(const Point & beg, size_t wl_lower_bound, size_t wl_u
       if(path.size() >= wl_lower_bound){
          bool flag = true;
          size_t path_size = path.size();
+         M_Assert(z <= 1, "z <= 1");  // under layer = 2
          for(int z_i = z - 1; z_i >=0; --z_i){
             if(getGrid(x, y, z_i) != 0){
                flag = false;
@@ -251,7 +258,7 @@ Point Layout::searchEngine(const Point & beg, size_t wl_lower_bound, size_t wl_u
          if(y + 1 < height && getGrid(x, y + 1, z) == 0 && !getVisited(x, y + 1, z)){
             tmp1.push_back(Point(x, y + 1, z));
          }
-         if(z + 1 < layers && getGrid(x, y, z + 1) == 0 && !getVisited(x, y, z + 1)){
+         if(z + 1 < MAX_LAYER && getGrid(x, y, z + 1) == 0 && !getVisited(x, y, z + 1)){
             tmp2.push_back(Point(x, y, z + 1));
          }
          if(z - 1 >= 0 && getGrid(x, y, z - 1) == 0 && !getVisited(x, y, z - 1)){
@@ -264,7 +271,7 @@ Point Layout::searchEngine(const Point & beg, size_t wl_lower_bound, size_t wl_u
          if(x + 1 < width && getGrid(x + 1, y, z) == 0 && !getVisited(x + 1, y, z)){
             tmp1.push_back(Point(x + 1, y, z));
          }
-         if(z + 1 < layers && getGrid(x, y, z + 1) == 0 && !getVisited(x, y, z + 1)){
+         if(z + 1 < MAX_LAYER && getGrid(x, y, z + 1) == 0 && !getVisited(x, y, z + 1)){
             tmp2.push_back(Point(x, y, z + 1));
          }
          if(z - 1 >= 0 && getGrid(x, y, z - 1) == 0 && !getVisited(x, y, z - 1)){
