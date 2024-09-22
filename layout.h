@@ -36,7 +36,7 @@ public:
    Layout(int _width, int _height, int _layers, int idx);
    ~Layout();
    
-   void autoConfig(std::vector<std::pair<int, Net_config>> & net_configs);
+   void autoConfig(std::vector<std::pair<int, Net_config>> & net_configs, int net_num, int pin_num);
    void generateObstacles(const std::vector<int> & obs_num, const std::vector<std::pair<int,int>> & obs_size_range);
    bool addObstacle(Point & p1, Point & p2);
    void generateNets(const std::vector<std::pair<int, Net_config>> & net_configs);

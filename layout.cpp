@@ -29,20 +29,13 @@ Layout::~Layout(){
    }
 }
 
-void Layout::autoConfig(std::vector<std::pair<int, Net_config>> & net_configs){
-   size_t wl_limit = std::max(width, height) * 1.5;
-   Net_config net_2_pins(5,  25, wl_limit, 2, 20, 0.85);
-   Net_config net_3_pins(7,  20, wl_limit, 3, 15, 0.85);
-   Net_config net_4_pins(7,  20, wl_limit, 4, 10, 0.85);
-   Net_config net_5_pins(5,  20, wl_limit, 5, 10, 0.85);
-   std::normal_distribution<float> distribution_2(30.0, 2.0);
-   std::normal_distribution<float> distribution_3(10.0, 1.5);
-   std::normal_distribution<float> distribution_4(5.0, 1.0);
-   std::normal_distribution<float> distribution_5(5.0, 1.0);
-   net_configs.push_back({(int) std::round(distribution_5(r_gen)), net_5_pins});
-   net_configs.push_back({(int) std::round(distribution_4(r_gen)), net_4_pins});
-   net_configs.push_back({(int) std::round(distribution_3(r_gen)), net_3_pins});
-   net_configs.push_back({(int) std::round(distribution_2(r_gen)), net_2_pins});
+void Layout::autoConfig(std::vector<std::pair<int, Net_config>> & net_configs, int net_num, int pin_num){
+   const int size = std::max(width, height);
+   const size_t min_wl = size * 0.1, max_wl = size * 0.5, wl_limit = size * 1.5;
+   const int reroute_num = size * 0.15 * net_num;
+   const float momentum = 0.85;
+   Net_config net_config(min_wl, max_wl, wl_limit, pin_num, reroute_num, momentum);
+   net_configs.push_back({net_num, net_config});
 }
 
 void Layout::generateObstacles(const std::vector<int> & obs_num, const std::vector<std::pair<int,int>> & obs_size_range){

@@ -37,7 +37,7 @@ for count, file in enumerate(file_list):
         for i in range(obs_num):
             line = f.readline().split()
             assert(int(line[2]) == int(line[5]))
-            if int(line[2]) == 0:
+            if int(line[2]) % 2 == 0:  # support layer > 2
                 h_obs_list.append([int(line[0]), int(line[1]), int(line[3]), int(line[4])])
             else:
                 v_obs_list.append([int(line[0]), int(line[1]), int(line[3]), int(line[4])])

@@ -33,3 +33,6 @@ main
 
 # Custom
 .vscode/
+eval_*/
+test_*/
+train_*/
