@@ -10,22 +10,25 @@ from matplotlib.patches import Rectangle
 
 def visual(filepath):
     """
-    visualize a raw case (copied from visual.py)
+    visualize a raw case (modified from visual.py)
     """
     file_name = filepath[:-4]
     with open(filepath, "r") as f:
         # read width
         line = f.readline().split()
-        width = int(line[1])
+        width = int(line[2])
         # read height
         line = f.readline().split()
-        height = int(line[1])
-        # read layer
-        line = f.readline().split()
-        layer = int(line[1])
+        height = int(line[2])
         # read total WL
         line = f.readline().split()
         wl = int(line[1])
+        _ = f.readline()  # total_via _
+        # read layer
+        line = f.readline().split()
+        layer = int(line[1])
+        for _ in range(layer):  # Track_ _ _ _
+            f.readline()
         # read obstacles
         line = f.readline().split()
         obs_num = int(line[1])
@@ -59,6 +62,8 @@ def visual(filepath):
             line = f.readline().split()
             pin_num = int(line[1])
             for _ in range(pin_num):
+                _ = f.readline()  # pin_id _
+                _ = f.readline()  # ap_num 1
                 line = f.readline().split()
                 # if net_id == 166:
                 pin_list.append([int(line[0]), int(line[1]), int(line[2])])
@@ -182,8 +187,13 @@ def format(fin_name, fout_name):
     fout = open(fout_name, "w")
     fout.write(fin.readline())  # Width _
     fout.write(fin.readline())  # Height _
-    fout.write(fin.readline())  # Layer _
-    fout.write(fin.readline())  # Total_WL _
+    fout.write(fin.readline())  # total_WL _
+    fout.write(fin.readline())  # total_via _
+    l = fin.readline()  # Layer _
+    Layer = int(l.split()[1])
+    fout.write(l)
+    for _ in range(Layer):  # Track_ _ _ _
+        fout.write(fin.readline())
     # Obstacle_num _
     l = fin.readline()
     Obstacle_num = int(l.split()[1])
@@ -201,7 +211,13 @@ def format(fin_name, fout_name):
         pin_num = int(l.split()[1])
         fout.write(l)
         for _ in range(pin_num):
-            fout.write(fin.readline())
+            fout.write(fin.readline())  # pin_id _
+            # ap_num _
+            l = fin.readline()
+            ap_num = int(l.split()[1])
+            fout.write(l)
+            for _ in range(ap_num):
+                fout.write(fin.readline())
         # Via_num _
         l = fin.readline()
         Via_num = int(l.split()[1])
@@ -323,13 +339,13 @@ if __name__ == "__main__":
     l = args.layer
     # (test_num, width, height, layers, obs_num, min_obs_size, max_obs_size, net_num, pin_num)
     levels = [
-        (10000, s, s, l, s, int(s * 0.05), int(s * 0.5), 1, 2),
-        (5000, s, s, l, s, int(s * 0.05), int(s * 0.5), 1, 5),
+        (5000, s, s, l, s, int(s * 0.05), int(s * 0.5), 1, 2),
+        (2500, s, s, l, s, int(s * 0.05), int(s * 0.5), 1, 5),
         (2500, s, s, l, s, int(s * 0.05), int(s * 0.5), 5, 5),  # eval
         (250, s, s, l, int(s * 0.5), int(s * 0.1), int(s * 0.5), 20, 5),
         (100, s, s, l, int(s * 0.25), int(s * 0.1), int(s * 0.5), 100, 5),
         (50, s, s, l, int(s * 0.25), int(s * 0.1), int(s * 0.5), 300, 5),
-        (25, s, s, l, int(s * 0.10), int(s * 0.1), int(s * 0.5), 700, 5),
+        (50, s, s, l, int(s * 0.10), int(s * 0.1), int(s * 0.5), 700, 5),
     ]  # max 670 nets
     gen_train(args.size, args.layer, levels)
     gen_eval(

@@ -31,7 +31,7 @@ Layout::~Layout(){
 
 void Layout::autoConfig(std::vector<std::pair<int, Net_config>> & net_configs, int net_num, int pin_num){
    const int size = std::max(width, height);
-   const size_t min_wl = size * 0.1, max_wl = size * 0.5, wl_limit = size * 1.5;
+   const size_t min_wl = size * 0.1, max_wl = size * 0.75, wl_limit = size * 1.5;
    const int reroute_num = size * 0.15 * net_num;
    const float momentum = 0.85;
    Net_config net_config(min_wl, max_wl, wl_limit, pin_num, reroute_num, momentum);
@@ -381,15 +381,20 @@ void Layout::saveResult(const std::string & filename){
 		exit(1);
 	}
 
-	fout << "Width " << width << std::endl;
-	fout << "Height " << height << std::endl;
-	fout << "Layer " << layers << std::endl;
+	fout << "Width 0 " << width << std::endl;
+	fout << "Height 0 " << height << std::endl;
 
-   int total_wl = 0;
+   int total_wl = 0, total_via = 0;
    for(Net * n : nets){
       total_wl += n->wl;
+      total_via += n->vias.size();
    }
-	fout << "Total_WL " << total_wl << std::endl;
+	fout << "total_WL " << total_wl << std::endl;
+   fout << "total_via " << total_via << std::endl;;
+	fout << "Layer " << layers << std::endl;
+   for (int i = 0; i < layers; i++) {
+      fout << "track" << i << " 0 1 " << (i + 1) % 2 << std::endl;
+   }
    fout << "Obstacle_num " << obstacles.size() << std::endl;
    for(std::pair<Point, Point> & p : obstacles){
 		fout << p.first.x << " " << p.first.y << " " << p.first.z << " " << p.second.x << " " << p.second.y << " " << p.second.z << std::endl;
@@ -398,7 +403,10 @@ void Layout::saveResult(const std::string & filename){
    for(Net * n : nets){
       fout << "Net_id " << n->net_id << std::endl;
       fout << "pin_num " << n->pins.size() << std::endl;
+      int pid = 0;
       for(Point & p : n->pins){
+         fout << "pin_id " << pid++ << std::endl;
+         fout << "ap_num 1" << std::endl;
 		   fout << p.x << " " << p.y << " " << p.z << std::endl;
 	   }
       fout << "Via_num " << n->vias.size() << std::endl;
