@@ -269,7 +269,7 @@ def gen_train(size, layer, argvs):
         level_num=len(argvs),
         indices=[(i + 1) * index for i in range(len(argvs))],
         types=[0 for _ in range(len(argvs))],
-        trainings=[True for _ in range(len(argvs))],
+        trainings=[argvs[0][-2] == 1] + [False] * (len(argvs) - 1),  # net_num == 1
         numbers=[i[0] for i in argvs],  # test_num
     )
 
@@ -339,22 +339,20 @@ if __name__ == "__main__":
     l = args.layer
     # (test_num, width, height, layers, obs_num, min_obs_size, max_obs_size, net_num, pin_num)
     levels = [
-        (5000, s, s, l, s, int(s * 0.05), int(s * 0.5), 1, 2),
-        (2500, s, s, l, s, int(s * 0.05), int(s * 0.5), 1, 5),
-        (2500, s, s, l, s, int(s * 0.05), int(s * 0.5), 5, 5),  # eval
-        (250, s, s, l, int(s * 0.5), int(s * 0.1), int(s * 0.5), 20, 5),
-        (100, s, s, l, int(s * 0.25), int(s * 0.1), int(s * 0.5), 100, 5),
-        (50, s, s, l, int(s * 0.25), int(s * 0.1), int(s * 0.5), 300, 5),
-        (50, s, s, l, int(s * 0.10), int(s * 0.1), int(s * 0.5), 700, 5),
-    ]  # max 670 nets
+        (100, s, s, l, s, int(s * 0.05), int(s * 0.5), 1, 2),  # only level_0 single net
+        (100, s, s, l, s, int(s * 0.05), int(s * 0.5), 2, 3),
+        (100, s, s, l, s, int(s * 0.05), int(s * 0.5), 5, 5),  # eval
+        (100, s, s, l, int(s * 0.5), int(s * 0.1), int(s * 0.5), 20, 5),
+        (100, s, s, l, int(s * 0.25), int(s * 0.1), int(s * 0.5), 50, 5),
+    ]
     gen_train(args.size, args.layer, levels)
     gen_eval(
         args.size,
         args.layer,
-        (10, s, s, l, s, int(s * 0.05), int(s * 0.5), 5, 5),
+        (100, s, s, l, s, int(s * 0.05), int(s * 0.5), 5, 5),
     )
     gen_test(
         args.size,
         args.layer,
-        (10, s, s, l, s, int(s * 0.05), int(s * 0.5), 5, 5),
+        (100, s, s, l, s, int(s * 0.05), int(s * 0.5), 5, 5),
     )

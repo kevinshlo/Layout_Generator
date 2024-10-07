@@ -67,16 +67,19 @@ void Layout::generateObstacles(const std::vector<int> & obs_num, const std::vect
    }
 }
 
-void Layout::generateNets(const std::vector<std::pair<int, Net_config>> & net_configs){
+int Layout::generateNets(const std::vector<std::pair<int, Net_config>> & net_configs){
+   int total_nets = 0;
    for(const std::pair<int, Net_config> & net_config : net_configs){
       int counter = 0;
       for(int i = 0; i < net_config.first; ++i){
          if(generateNet(net_config.second)){
             counter++;
+            total_nets++;
          }
       }
       std::cout << "Created " << net_config.second.pin_num << " pins net: " << counter << std::endl;
    }
+   return total_nets;
 }
 
 bool Layout::addObstacle(Point & p1, Point & p2){
@@ -138,6 +141,9 @@ bool Layout::generateNet(const Net_config & config){
       Point beg(x, y, z);
       Point result = searchEngine(beg, randInt(r_gen, config.min_wl, config.max_wl), config.wl_limit, config.momentum1, total_path, n_vias);
       if(result.x != -1){
+         // neighbor pins might make the net "redundant" during training
+         // triggers assertion fail: "net_queue->size()"
+         if (std::abs(beg.x - result.x) == 1 && beg.y == result.y) continue;
          M_Assert(result.z == 0, "result.z == 0");  // under layer = 2
          n_pins.push_back(beg);
          n_pins.push_back(result);
@@ -168,6 +174,10 @@ bool Layout::generateNet(const Net_config & config){
          int z = candidates_beg[j].z;
          Point result = searchEngine(Point(x, y, z), randInt(r_gen, config.min_wl, config.max_wl), config.wl_limit, config.momentum2, total_path, n_vias);
          if(result.x != -1){
+            // neighbor pins might make the net "redundant" during training
+            // triggers assertion fail: "net_queue->size()"
+            if ((result.x - 1 >= 0) && (getGrid(result.x - 1, result.y, result.z) == 2)) continue;
+            if ((result.x + 1 < width) && (getGrid(result.x + 1, result.y, result.z) == 2)) continue;
             M_Assert(result.z == 0, "result.z == 0");  // under layer = 2
             n_pins.push_back(result);
             setGrid(result.x, result.y, result.z, 2);

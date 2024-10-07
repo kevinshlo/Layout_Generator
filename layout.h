@@ -39,7 +39,7 @@ public:
    void autoConfig(std::vector<std::pair<int, Net_config>> & net_configs, int net_num, int pin_num);
    void generateObstacles(const std::vector<int> & obs_num, const std::vector<std::pair<int,int>> & obs_size_range);
    bool addObstacle(Point & p1, Point & p2);
-   void generateNets(const std::vector<std::pair<int, Net_config>> & net_configs);
+   int generateNets(const std::vector<std::pair<int, Net_config>> & net_configs);
    bool generateNet(const Net_config & config);
    void saveResult(const std::string & filename);
    void checkLegal();

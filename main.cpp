@@ -34,9 +34,8 @@ int main(int argc, char *argv[]){
     struct stat st = {0};
     if (stat(directory, &st) == -1) mkdir(directory, 0700);
 
-    std::vector<std::pair<int, Net_config>> net_configs;
     for(int i = 0; i < test_num; ++i){
-        net_configs.clear();
+        std::vector<std::pair<int, Net_config>> net_configs;
         Layout L(width, height, layers, i);
         std::vector<int> obs_nums(layers, obs_num / layers);
         for (int j = 0; j < (obs_num % layers); j++) obs_nums[j]++;
@@ -45,14 +44,16 @@ int main(int argc, char *argv[]){
             std::vector<std::pair<int, int>>(layers, {min_obs_size, max_obs_size})
         );
         L.autoConfig(net_configs, net_num, pin_num);
-        L.generateNets(net_configs);
+        int total_nets = L.generateNets(net_configs);
+        if (total_nets == 0) {  // no net created, retry
+            i--;
+            continue;
+        }
 #ifdef DEBUG
         L.checkLegal();
 #endif
         std::string file_name = std::string(directory) + "/" + std::to_string(i) + ".txt";
         L.saveResult(file_name);
-        //L.archiveAndReset();
-        std::cout << std::endl;
     }
     return 0;
 }
