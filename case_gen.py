@@ -339,11 +339,11 @@ if __name__ == "__main__":
     l = args.layer
     # (test_num, width, height, layers, obs_num, min_obs_size, max_obs_size, net_num, pin_num)
     levels = [
-        (100, s, s, l, s, int(s * 0.05), int(s * 0.5), 1, 2),  # only level_0 single net
-        (100, s, s, l, s, int(s * 0.05), int(s * 0.5), 2, 3),
-        (100, s, s, l, s, int(s * 0.05), int(s * 0.5), 5, 5),  # eval
+        (2000, s, s, l, s, int(s * 0.05), int(s * 0.5), 1, 2),  # only level_0 1-net
+        (1000, s, s, l, s, int(s * 0.05), int(s * 0.5), 2, 3),
+        (400, s, s, l, s, int(s * 0.05), int(s * 0.5), 5, 5),  # eval
         (100, s, s, l, int(s * 0.5), int(s * 0.1), int(s * 0.5), 20, 5),
-        (100, s, s, l, int(s * 0.25), int(s * 0.1), int(s * 0.5), 50, 5),
+        (40, s, s, l, int(s * 0.25), int(s * 0.1), int(s * 0.5), 50, 5),
     ]
     gen_train(args.size, args.layer, levels)
     gen_eval(
