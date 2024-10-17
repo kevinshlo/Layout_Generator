@@ -17,9 +17,6 @@
 #include "assert.h"
 #include "net_config.h"
 #include "debugger.h"
-inline int randInt(int min, int max){
-   return rand() % (max - min + 1) + min;
-}
 
 inline int randInt(std::mt19937 & generator, int min, int max){
    std::uniform_int_distribution<int> distribution(min, max);

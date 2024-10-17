@@ -2,7 +2,7 @@
 
 #define MAX_LAYER 2  // this limits searchEngine to only route on layer 0 & 1
 
-Layout::Layout(int _width, int _height, int _layers, int idx) : layout_idx(idx), width(_width), height(_height), layers(_layers), length(_width * _height * _layers), r_gen(idx){
+Layout::Layout(int _width, int _height, int _layers, int idx) : layout_idx(idx), width(_width), height(_height), layers(_layers), length(_width * _height * _layers), r_gen(idx + time(0)){
    // assert(layers == 2);
    grids = new int[length]();
    /** LAYER: only 2 layers */
@@ -31,8 +31,8 @@ Layout::~Layout(){
 
 void Layout::autoConfig(std::vector<std::pair<int, Net_config>> & net_configs, int net_num, int pin_num){
    const int size = std::max(width, height);
-   const size_t min_wl = size * 0.1, max_wl = size * 0.75, wl_limit = size * 1.5;
-   const int reroute_num = size * 0.15 * net_num;
+   const size_t min_wl = 5, max_wl = size * 0.75, wl_limit = size * 1.5;
+   const int reroute_num = size * 0.15 * net_num * pin_num;
    const float momentum = 0.85;
    Net_config net_config(min_wl, max_wl, wl_limit, pin_num, reroute_num, momentum);
    net_configs.push_back({net_num, net_config});
@@ -42,11 +42,8 @@ void Layout::generateObstacles(const std::vector<int> & obs_num, const std::vect
    assert((int)obs_num.size() <= layers);
    assert(obs_num.size() == obs_size_range.size());
    for(int i = 0; i < (int)obs_num.size(); ++i){
-      int counter = 0;
-      int obs_w = 1;
-      int obs_h = 1;
-      int pre_obs_num = obstacles.size();
-      while(counter < 10){
+      for (int j = 0, counter = 0; j < obs_num[i] && counter < 10;) {
+         int obs_w = 1, obs_h = 1;
          if(i % 2){//vertical layer
             obs_h = randInt(r_gen, obs_size_range[i].first, obs_size_range[i].second);
          }else{
@@ -59,9 +56,7 @@ void Layout::generateObstacles(const std::vector<int> & obs_num, const std::vect
          if(!addObstacle(obs_p1, obs_p2)){
             counter++;
          }else{
-            if((int)obstacles.size() - pre_obs_num == obs_num[i]){
-               break;
-            }
+            j++;
          }
       }
    }

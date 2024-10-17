@@ -236,6 +236,7 @@ def format(fin_name, fout_name):
 
 
 MAIN = "main"
+SUFFIX = ""
 
 
 def gen_train(size, layer, argvs):
@@ -243,7 +244,7 @@ def gen_train(size, layer, argvs):
     generate cases for training set
     """
     index = 10000
-    dir = f"train_{size}x{size}x{layer}"
+    dir = f"train_{size}x{size}x{layer}{SUFFIX}"
     os.mkdir(dir)
     raw_dir = f"{dir}/raw"
     os.mkdir(raw_dir)
@@ -278,7 +279,7 @@ def gen_eval(size, layer, argv):
     """
     generate cases for evaluating set
     """
-    dir = f"eval_{size}x{size}x{layer}"
+    dir = f"eval_{size}x{size}x{layer}{SUFFIX}"
     os.mkdir(dir)
     raw_dir = f"{dir}/raw"
     os.mkdir(raw_dir)
@@ -312,9 +313,23 @@ def gen_test(size, layer, argv):
     """
     copy evaluating cases as testing set
     """
-    eval_dir = f"eval_{size}x{size}x{layer}"
-    dir = f"test_{size}x{size}x{layer}"
-    shutil.copytree(eval_dir, dir)
+    dir = f"test_{size}x{size}x{layer}{SUFFIX}"
+    os.mkdir(dir)
+    raw_dir = f"{dir}/raw"
+    os.mkdir(raw_dir)
+    lv_raw_dir = f"{raw_dir}/level_0"
+    os.mkdir(lv_raw_dir)
+    assert 0 == subprocess.call(
+        f"./{MAIN} {lv_raw_dir} {' '.join([str(arg) for arg in argv])}",
+        shell=True,
+    )
+    lv_dir = f"{dir}/level_0"
+    os.mkdir(lv_dir)
+    for fin in os.listdir(lv_raw_dir):
+        if 0 == int(fin[:-4]):
+            visual(f"{lv_raw_dir}/{fin}")
+        fout = f"id_{int(fin[:-4])}.txt"
+        format(f"{lv_raw_dir}/{fin}", f"{lv_dir}/{fout}")
     gen_cases(
         dir=dir,
         width=size,
@@ -330,29 +345,32 @@ def gen_test(size, layer, argv):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--main", default=MAIN, type=str)
+    parser.add_argument("--main", default="main", type=str)
+    parser.add_argument("--suffix", default="", type=str)
     parser.add_argument("--size", default=500, type=int)
     parser.add_argument("--layer", default=3, type=int)
     args = parser.parse_args()
     MAIN = args.main
+    SUFFIX = args.suffix
     s = args.size
     l = args.layer
+    min_obs_size, max_obs_size = int(s * 0.05), int(s * 0.5)
     # (test_num, width, height, layers, obs_num, min_obs_size, max_obs_size, net_num, pin_num)
     levels = [
-        (2000, s, s, l, s, int(s * 0.05), int(s * 0.5), 1, 2),  # only level_0 1-net
-        (1000, s, s, l, s, int(s * 0.05), int(s * 0.5), 2, 3),
-        (400, s, s, l, s, int(s * 0.05), int(s * 0.5), 5, 5),  # eval
-        (100, s, s, l, int(s * 0.5), int(s * 0.1), int(s * 0.5), 20, 5),
-        (40, s, s, l, int(s * 0.25), int(s * 0.1), int(s * 0.5), 50, 5),
-    ]
+        (2000, s, s, l, int(s * 0.50), min_obs_size, max_obs_size, 1, 4),
+        (800, s, s, l, int(s * 0.50), min_obs_size, max_obs_size, 15, 5),
+        (160, s, s, l, int(s * 0.25), min_obs_size, max_obs_size, 75, 5),
+        (80, s, s, l, int(s * 0.10), min_obs_size, max_obs_size, 150, 5),
+        (40, s, s, l, int(s * 0.05), min_obs_size, max_obs_size, 300, 5),
+    ]  # level_0 must be single net and other should not
     gen_train(args.size, args.layer, levels)
     gen_eval(
         args.size,
         args.layer,
-        (100, s, s, l, s, int(s * 0.05), int(s * 0.5), 5, 5),
+        (40, s, s, l, int(s * 0.50), min_obs_size, max_obs_size, 1, 5),
     )
     gen_test(
         args.size,
         args.layer,
-        (100, s, s, l, s, int(s * 0.05), int(s * 0.5), 5, 5),
+        (40, s, s, l, int(s * 0.05), min_obs_size, max_obs_size, 300, 5),
     )
