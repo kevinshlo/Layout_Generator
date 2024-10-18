@@ -398,7 +398,7 @@ void Layout::saveResult(const std::string & filename){
    fout << "total_via " << total_via << std::endl;;
 	fout << "Layer " << layers << std::endl;
    for (int i = 0; i < layers; i++) {
-      fout << "track" << i << " 0 1 " << (i + 1) % 2 << std::endl;
+      fout << "track" << i << " 0 1 " << (i % 2) << std::endl;
    }
    fout << "Obstacle_num " << obstacles.size() << std::endl;
    for(std::pair<Point, Point> & p : obstacles){
