@@ -32,6 +32,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
 HORIZONTAL = 0
+VIA_COST = 1
 
 
 class Net:
@@ -42,10 +43,11 @@ class Net:
         self.h_segs: list[tuple[int, int, int, int, int, int]] = h_segs
         self.v_segs: list[tuple[int, int, int, int, int, int]] = v_segs
 
-    def WL(self):
+    def cost(self):
+        """"""
         h = sum([x2 - x1 for x1, _, _, x2, _, _ in self.h_segs])
         v = sum([y2 - y1 for _, y1, _, _, y2, _ in self.v_segs])
-        return h + v
+        return h + v + len(self.vias) * VIA_COST
 
 
 class Testcase:
@@ -64,7 +66,7 @@ class Testcase:
         self.h_end_point = h_end_point
         self.v_start_point = v_start_point
         self.v_end_point = v_end_point
-        self.total_WL = sum([net.WL() for net in nets])
+        self.total_WL = sum([net.cost() for net in nets])
         self.total_via = sum([len(net.vias) for net in nets])
         assert len(tracks) == Layer
         self.Layer = Layer

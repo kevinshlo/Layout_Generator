@@ -44,10 +44,10 @@ def count(dir: str) -> tuple[int, list[int], list[int]]:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", type=str)
+    parser.add_argument("-i", type=str)
     parser.add_argument("-t", type=str)  # train / eval / test
     args = parser.parse_args()
-    dir = args.d
+    dir = args.i
     level_num, indices, numbers = count(dir)
     if args.t == "train":
         gen_cases(
