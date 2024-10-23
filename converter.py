@@ -23,7 +23,11 @@ class Converter:
     """
 
     def __init__(
-        self, in_file: str, remove_empty_net: bool, remove_non_bottom_pins: bool
+        self,
+        in_file: str,
+        remove_empty_net: bool,
+        remove_non_bottom_pins: bool,
+        remove_unused_layers: bool,
     ) -> None:
         self.testcase = Testcase.deserialize(in_file)
         self.remove_empty_net = remove_empty_net
@@ -38,8 +42,10 @@ class Converter:
         # track_coords: each track: [z][x_or_y(spacing-uniformed)] -> x_or_y(original)
         self.convert_obs()
         # obstacles: converted obstacles (including track obstacles)
-        self.convert_net()
+        self.convert_nets()
         # nets: converted nets (including vias & segments)
+        if remove_unused_layers:
+            self.trim_unused_layer()
         layer, width, height = self.size
         self.converted_testcase = Testcase(
             h_start_point=0,
@@ -173,7 +179,7 @@ class Converter:
                             )
         print(f"Add {track_obs_num} track obstacles.")
 
-    def convert_net(self):
+    def convert_nets(self):
         _, width, height = self.size
         self.nets: list[Net] = []
         id = 0
@@ -225,6 +231,25 @@ class Converter:
                 )
             )
             id += 1
+
+    def trim_unused_layer(self):
+        used_layer = 0
+        for net in self.nets:
+            for _, _, z, _, _, _ in net.h_segs + net.v_segs:
+                used_layer = max(z, used_layer)
+        used_layer += 1
+        layer, width, height = self.size
+        if used_layer == layer:  # used all layers
+            return
+        self.size = (used_layer, width, height)
+        self.tracks = self.tracks[:used_layer]
+        self.track_arr = self.track_arr[:used_layer, :, :]
+        self.track_coords = self.track_coords[:used_layer]
+        obstacles: list[tuple[int, int, int, int, int, int]] = []
+        for x1, y1, z1, x2, y2, z2 in self.obstacles:
+            if z1 < used_layer:
+                obstacles.append((x1, y1, z1, x2, y2, z2))
+        self.obstacles = obstacles
 
     def map_coord(self, coord: tuple[int, int]) -> tuple[int, int]:
         """map original coord to spacing-uniformed coord"""
@@ -321,6 +346,7 @@ if __name__ == "__main__":
     parser.add_argument("--image", type=str)
     parser.add_argument("--remove_empty_net", type=bool, default=False)
     parser.add_argument("--remove_non_bottom_pins", type=bool, default=False)
+    parser.add_argument("--remove_unused_layers", type=bool, default=False)
     args = parser.parse_args()
 
     if os.path.isdir(args.i):  # convert all cases in directory
@@ -334,7 +360,10 @@ if __name__ == "__main__":
                         print(root)
                         break
                     converter = Converter(
-                        in_file, args.remove_empty_net, args.remove_non_bottom_pins
+                        in_file,
+                        args.remove_empty_net,
+                        args.remove_non_bottom_pins,
+                        args.remove_unused_layers,
                     )
                     converter.serialize(in_file, args.write_segments)
                     if len(converter.nets) == 0:
