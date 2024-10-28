@@ -134,7 +134,7 @@ bool Layout::generateNet(const Net_config & config){
       int z = idx % layers;  
       //beg_candidates.push_back(Point(x, y, z));
       Point beg(x, y, z);
-      Point result = searchEngine(beg, randInt(r_gen, config.min_wl, config.max_wl), config.wl_limit, config.momentum1, total_path, n_vias);
+      Point result = searchEngine(beg, randIntNorm(r_gen, config.min_wl, config.max_wl), config.wl_limit, config.momentum1, total_path, n_vias);
       if(result.x != -1){
          // neighbor pins might make the net "redundant" during training
          // triggers assertion fail: "net_queue->size()"
@@ -167,7 +167,7 @@ bool Layout::generateNet(const Net_config & config){
          int x = candidates_beg[j].x;
          int y = candidates_beg[j].y;
          int z = candidates_beg[j].z;
-         Point result = searchEngine(Point(x, y, z), randInt(r_gen, config.min_wl, config.max_wl), config.wl_limit, config.momentum2, total_path, n_vias);
+         Point result = searchEngine(Point(x, y, z), randIntNorm(r_gen, config.min_wl, config.max_wl), config.wl_limit, config.momentum2, total_path, n_vias);
          if(result.x != -1){
             // neighbor pins might make the net "redundant" during training
             // triggers assertion fail: "net_queue->size()"

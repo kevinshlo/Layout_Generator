@@ -23,6 +23,11 @@ inline int randInt(std::mt19937 & generator, int min, int max){
    return distribution(generator);
 }
 
+inline int randIntNorm(std::mt19937 & generator, int min, int max) {
+   std::normal_distribution<float> distribution(0, float(max - min) / 3);
+   return std::round(min + std::abs(distribution(generator)));
+}
+
 inline float randFloat(std::mt19937 & generator, float min = 0.0, float max = 1.0){
    std::uniform_real_distribution<float> distribution(min, max);
    return distribution(generator);

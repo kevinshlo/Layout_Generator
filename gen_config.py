@@ -42,39 +42,53 @@ def count(dir: str) -> tuple[int, list[int], list[int]]:
     return level_num, indices, numbers
 
 
+def gen_train(dir: str):
+    level_num, indices, numbers = count(dir)
+    gen_cases(
+        dir=dir,
+        level_num=level_num,
+        indices=indices,
+        types=[0] * level_num,
+        trainings=[True] + [False] * (level_num - 1),
+        numbers=numbers,
+    )
+
+
+def gen_evel(dir: str):
+    level_num, indices, numbers = count(dir)
+    gen_cases(
+        dir=dir,
+        level_num=level_num,
+        indices=indices,
+        types=[0] * level_num,
+        trainings=[False] * level_num,
+        numbers=numbers,
+    )
+
+
+def gen_test(dir: str):
+    level_num, indices, numbers = count(dir)
+    gen_cases(
+        dir=dir,
+        level_num=level_num,
+        indices=indices,
+        types=[1] * level_num,
+        trainings=[False] * level_num,
+        numbers=numbers,
+    )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", type=str)
     parser.add_argument("-t", type=str)  # train / eval / test
     args = parser.parse_args()
     dir = args.i
-    level_num, indices, numbers = count(dir)
     if args.t == "train":
-        gen_cases(
-            dir=dir,
-            level_num=level_num,
-            indices=indices,
-            types=[0] * level_num,
-            trainings=[True] + [False] * (level_num - 1),
-            numbers=numbers,
-        )
+        gen_train(dir)
     elif args.t == "eval":
-        gen_cases(
-            dir=dir,
-            level_num=level_num,
-            indices=indices,
-            types=[0] * level_num,
-            trainings=[False] * level_num,
-            numbers=numbers,
-        )
+        gen_evel(dir)
     elif args.t == "test":
-        gen_cases(
-            dir=dir,
-            level_num=level_num,
-            indices=indices,
-            types=[1] * level_num,
-            trainings=[False] * level_num,
-            numbers=numbers,
-        )
+        gen_test(dir)
     else:
         raise ValueError("invalid '-t' option ('train', 'eval', 'test')")
