@@ -72,17 +72,17 @@ class Converter:
         tracks = []  # append number of tracks for each layer
         for start, spacing, direction in self.testcase.tracks:
             if direction == HORIZONTAL:
-                w = (y_max - start) // spacing
-                if start + spacing * w + 1 < y_max:
-                    w += 1
-                width = max(width, w)
-                tracks.append((start, spacing, direction, w))
-            else:
-                h = (x_max - start) // spacing
-                if start + spacing * h + 1 < x_max:
+                h = (y_max - start) // spacing
+                if start + spacing * h < y_max:
                     h += 1
                 height = max(height, h)
                 tracks.append((start, spacing, direction, h))
+            else:
+                w = (x_max - start) // spacing
+                if start + spacing * w < x_max:
+                    w += 1
+                width = max(width, w)
+                tracks.append((start, spacing, direction, w))
         self.size = (self.testcase.Layer, width, height)
         self.tracks: list[tuple[int, int, int, int]] = tracks
 
@@ -117,12 +117,14 @@ class Converter:
             for p in range(start, start + spacing * track_num, spacing):
                 if direction == HORIZONTAL:
                     y = self.map_y(p)
-                    self.track_arr[z, :, y] = SPACE
-                    tracks[y] = p
+                    if 0 <= y and y < height:
+                        self.track_arr[z, :, y] = SPACE
+                        tracks[y] = p
                 else:
                     x = self.map_x(p)
-                    self.track_arr[z, x, :] = SPACE
-                    tracks[x] = p
+                    if 0 <= x and x < width:
+                        self.track_arr[z, x, :] = SPACE
+                        tracks[x] = p
             self.track_coords.append(tracks)
 
     def convert_obs(self):
@@ -286,7 +288,7 @@ class Converter:
             r_min, r_max = None, None
             for r in range(r1m, r2m):
                 track = self.track_coords[z][r]
-                if r1 <= track and track < r2:
+                if track is not None and r1 <= track and track < r2:
                     r_min = r if r_min is None else min(r, r_min)
                     r_max = r if r_max is None else max(r, r_max)
             if r_min is None or r_max is None:
@@ -372,6 +374,11 @@ if __name__ == "__main__":
             tokens = in_file[: -len(".txt")].split("_")
             id = int(tokens[-1])
             replace_file = "_".join(tokens[:-1]) + "_" + str(id - 1) + ".txt"
+            if not os.path.exists(replace_file):
+                replace_file = "_".join(tokens[:-1]) + "_" + str(id + 1) + ".txt"
+                while replace_file in illegal_testcases:
+                    id += 1
+                    replace_file = "_".join(tokens[:-1]) + "_" + str(id + 1) + ".txt"
             print(f"testcase without net found: {in_file}")
             shutil.copy(replace_file, in_file)
             print(f"replaced by: {replace_file}")
